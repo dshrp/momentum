@@ -71,14 +71,12 @@ Questions or feedback? Reach out!
 
 **Created by [Daniel Sharp](https://thedscs.com) | [DSCS](https://dscs.substack.com)**
 
-
 Momentum - Automated Event Discovery Platform
 AI-powered social media monitoring tool that automatically discovers and tracks events from your friends' Instagram accounts. Never miss another underground show, art opening, or pop-up party.
-🔗 Live Demo: momentum-chrome-extension.vercel.app
-
+🔗 Live Demo: v0-momentum-chrome-extension.vercel.app
 🚀 Quick Start
 bash# Clone the repository
-git clone https://github.com/yourusername/momentum.git
+git clone https://github.com/dshrp/momentum.git
 cd momentum
 
 # Install dependencies
@@ -114,7 +112,7 @@ Personal Access Token:
 Visit airtable.com/developers/web/api/introduction
 Go to Account → Developer hub → Personal access tokens
 Create token with data.records:read permission
-Copy to your .env.local file
+Copy the token to your .env.local file
 
 
 Base ID:
@@ -125,6 +123,14 @@ The appXXXXXXXXXXXXXX is your Base ID
 
 
 
+💰 Cost Breakdown
+
+Make.com: Free (1,000 operations/month) or $9/month (10,000 operations)
+OpenAI API: ~$5-20/month for 25 friends
+Airtable: Free (1,200 records/base) or $10/month (unlimited)
+Vercel: Free for personal projects
+Total: $0-40/month depending on usage
+
 🏗️ Project Structure
 momentum/
 ├── src/
@@ -133,15 +139,10 @@ momentum/
 │   │   │   └── events/         # Airtable API integration
 │   │   ├── components/         # React components
 │   │   └── page.js            # Main dashboard
-├── airtable/
-│   ├── base-structure.md      # Airtable schema documentation
-│   └── sample-data.json       # Example event data
-├── make-automation/
-│   ├── scenario-blueprint.json # Make.com scenario template
-│   └── setup-guide.md         # Step-by-step automation setup
-└── docs/
-    ├── deployment.md          # Deployment instructions
-    └── troubleshooting.md     # Common issues and solutions
+├── public/                    # Static assets
+├── styles/                    # Global styles
+└── docs/                      # Documentation
+    └── README.md              # This file
 🗄️ Airtable Setup
 1. Create Base Structure
 Create a new Airtable base called "Momentum" with these tables:
@@ -452,9 +453,8 @@ MIT License - see LICENSE file for details.
 🆘 Support
 
 Issues: GitHub Issues
-Questions: your-email@domain.com
+Questions: daniel@thedscs.com
 Documentation: Project Wiki
 
 
 Built with ❤️ for the underground scene | Never miss another event from your creative friends
-
