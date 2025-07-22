@@ -75,7 +75,9 @@ Momentum - Automated Event Discovery Platform
 AI-powered social media monitoring tool that automatically discovers and tracks events from your friends' Instagram accounts. Never miss another underground show, art opening, or pop-up party.
 🔗 Live Demo: v0-momentum-chrome-extension.vercel.app
 🚀 Quick Start
-bash# Clone the repository
+
+```bash
+# Clone the repository
 git clone https://github.com/dshrp/momentum.git
 cd momentum
 
@@ -87,6 +89,8 @@ cp .env.example .env.local
 
 # Run development server
 npm run dev
+```
+
 Open http://localhost:3000 in your browser.
 📋 Prerequisites
 
@@ -97,29 +101,32 @@ Make.com account (for automation workflows)
 Vercel account (for deployment)
 
 ⚙️ Environment Setup
-Create a .env.local file in the root directory:
-env# Airtable Configuration
+Create a ```.env.local``` file in the root directory:
+
+```env
+# Airtable Configuration
 AIRTABLE_TOKEN=your_personal_access_token_here
 AIRTABLE_BASE_ID=your_base_id_here
 
 # Optional: Rate limiting
 RATE_LIMIT_MAX_REQUESTS=100
 RATE_LIMIT_WINDOW_MS=60000
+```
 Getting Airtable Credentials
 
 Personal Access Token:
 
 Visit airtable.com/developers/web/api/introduction
 Go to Account → Developer hub → Personal access tokens
-Create token with data.records:read permission
-Copy the token to your .env.local file
+Create token with ```data.records:read``` permission
+Copy the token to your ```.env.local``` file
 
 
 Base ID:
 
 Go to your Momentum base in Airtable
-URL looks like: https://airtable.com/appXXXXXXXXXXXXXX/...
-The appXXXXXXXXXXXXXX is your Base ID
+URL looks like: ```https://airtable.com/appXXXXXXXXXXXXXX/...```
+The ```appXXXXXXXXXXXXXX``` is your Base ID
 
 
 
@@ -132,6 +139,8 @@ Vercel: Free for personal projects
 Total: $0-40/month depending on usage
 
 🏗️ Project Structure
+
+```
 momentum/
 ├── src/
 │   ├── app/
@@ -143,38 +152,40 @@ momentum/
 ├── styles/                    # Global styles
 └── docs/                      # Documentation
     └── README.md              # This file
+```
+
 🗄️ Airtable Setup
 1. Create Base Structure
 Create a new Airtable base called "Momentum" with these tables:
 Events Table:
 
-Event_ID: Autonumber (Primary field)
-Title: Single line text
-Friend_Name: Single line text
-Event_Type: Single line text
-Date: Date
-Time: Single line text
-Venue: Single line text
-Location: Single line text
-Description: Long text
-Source: Single select (Instagram, RA)
-Source_URL: URL
-Status: Single select (Active, Hidden, Edited)
-User_Modified: Checkbox
-Week_Of: Date
-User_ID: Number
-Created_At: Created time
+```Event_ID:``` Autonumber (Primary field)
+```Title:``` Single line text
+```Friend_Name:``` Single line text
+```Event_Type:``` Single line text
+```Date:``` Date
+```Time:``` Single line text
+```Venue:``` Single line text
+```Location:``` Single line text
+```Description:``` Long text
+```Source:``` Single select (Instagram, RA)
+```Source_URL:``` URL
+```Status:``` Single select (Active, Hidden, Edited)
+```User_Modified:``` Checkbox
+```Week_Of:``` Date
+```User_ID:``` Number
+```Created_At:``` Created time
 
 Sources Table:
 
-Source_ID: Autonumber
-User_ID: Number
-Platform: Single select (Instagram, RA)
-Username: Single line text
-Friend_Name: Single line text
-Status: Single select (Active, Paused, Error)
-Created_At: Created time
-Last_Check: Date & time
+```Source_ID:``` Autonumber
+```User_ID:``` Number
+```Platform:``` Single select (Instagram, RA)
+```Username:``` Single line text
+```Friend_Name:``` Single line text
+```Status:``` Single select (Active, Paused, Error)
+```Created_At:``` Created time
+```Last_Check:``` Date & time
 
 2. Add Sample Sources
 Add your friends' Instagram accounts to the Sources table:
@@ -210,7 +221,7 @@ Step 2: Get Active Sources
 
 Module: Airtable > Search records
 Table: Sources
-Formula: AND({Platform} = "Instagram", {Status} = "Active", {User_ID} = 1)
+Formula: ```AND({Platform} = "Instagram", {Status} = "Active", {User_ID} = 1)```
 
 Step 3: Process Each Source
 
@@ -220,7 +231,7 @@ Array: Output from Airtable Sources
 Step 4: Build RSS Feed URL
 
 Module: RSS > Retrieve RSS feed items
-URL: https://rss-bridge.org/bridge01/?action=display&bridge=Instagram&context=Username&u={{SOURCE.Username}}&format=Atom
+URL: ```https://rss-bridge.org/bridge01/?action=display&bridge=Instagram&context=Username&u={{SOURCE.Username}}&format=Atom```
 Maximum items: 3
 
 Step 5: Process Each Post
@@ -232,7 +243,7 @@ Step 6: Check for Duplicates
 
 Module: Airtable > Search records
 Table: Events
-Formula: {Source_URL} = "{{RSS_POST.URL}}"
+Formula: ```{Source_URL} = "{{RSS_POST.URL}}"```
 
 Step 7: Filter New Events Only
 
@@ -246,6 +257,7 @@ Model: gpt-4
 Temperature: 0
 System prompt:
 
+```
 You are a JSON-only API. You analyze Instagram post captions for event announcements and return ONLY valid JSON.
 
 Required JSON format:
@@ -273,23 +285,27 @@ If NOT an event:
   "location": "",
   "description": ""
 }
+```
 
 User message:
 
+```
 Analyze this Instagram caption for events. Return only JSON.
 
 Username: {{RSS_POST.author}}
 Caption: {{RSS_POST.description}}
 Post Date: {{RSS_POST.published}}
+```
+
 Step 9: Parse JSON Response
 
 Module: Tools > Parse JSON
-JSON string: {{OPENAI.choices[].message.content}}
+JSON string: ```{{OPENAI.choices[].message.content}}```
 
 Step 10: Filter Events Only
 
 Add Filter on connection line
-Condition: {{JSON_PARSER.is_event}} equals true
+Condition: ```{{JSON_PARSER.is_event}}``` equals true
 
 Step 11: Store in Airtable
 
@@ -299,7 +315,7 @@ Map all fields from JSON Parser output
 Additional fields:
 
 Source: "Instagram"
-Source_URL: {{RSS_POST.URL}}
+Source_URL: ```{{RSS_POST.URL}}```
 User_ID: 1
 Status: "Active"
 
@@ -309,8 +325,8 @@ Step 12: Update Last Check
 
 Module: Airtable > Update a record
 Table: Sources
-Record ID: {{SOURCE_ITERATOR.id}}
-Fields: Last_Check = {{now}}
+Record ID: ```{{SOURCE_ITERATOR.id}}```
+Fields: Last_Check = ```{{now}}```
 
 4. Test and Activate
 
@@ -324,14 +340,16 @@ Deploy to Vercel
 
 Connect to Vercel:
 
-bashnpm install -g vercel
+```bash
+npm install -g vercel
 vercel login
 vercel
+```
 
 Set Environment Variables:
 
 Go to Vercel Dashboard → Project → Settings → Environment Variables
-Add your AIRTABLE_TOKEN and AIRTABLE_BASE_ID
+Add your ```AIRTABLE_TOKEN``` and ```AIRTABLE_BASE_ID```
 
 
 Custom Domain (optional):
@@ -436,9 +454,9 @@ Update frontend to handle multiple source types
 🤝 Contributing
 
 Fork the repository
-Create a feature branch: git checkout -b feature/new-feature
-Commit changes: git commit -m 'Add new feature'
-Push to branch: git push origin feature/new-feature
+Create a feature branch: ```git checkout -b feature/new-feature```
+Commit changes: ```git commit -m 'Add new feature'```
+Push to branch: ```git push origin feature/new-feature```
 Submit a pull request
 
 Development Guidelines
