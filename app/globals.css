@@ -1,0 +1,92 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  /* Momentum Color Palette - FIXED DARKER BLUE */
+  --momentum-cream: 45 23% 95%; /* Warm cream background */
+  --momentum-card-bg: 0 0% 100%; /* Pure white for cards */
+  --momentum-deep-blue: 217 91% 35%; /* DARKER blue - was 59.8%, now 35% */
+  --momentum-border: 220 13% 91%; /* Light gray borders */
+  --momentum-text-primary: 222 84% 5%; /* Dark text */
+  --momentum-text-secondary: 215 16% 47%; /* Medium gray text */
+}
+
+.dark {
+  /* Dark mode overrides */
+  --momentum-cream: 222 84% 5%; /* Dark background */
+  --momentum-card-bg: 217 33% 17%; /* Dark cards */
+  --momentum-deep-blue: 217 91% 60%; /* Brighter blue for dark mode */
+  --momentum-border: 217 33% 23%; /* Dark borders */
+  --momentum-text-primary: 210 40% 98%; /* Light text */
+  --momentum-text-secondary: 217 19% 73%; /* Light gray text */
+}
+
+/* Base styles */
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Oxygen", "Ubuntu", "Cantarell", "Fira Sans",
+    "Droid Sans", "Helvetica Neue", sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background-color: hsl(var(--momentum-cream));
+  color: hsl(var(--momentum-text-primary));
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: hsl(var(--momentum-cream));
+}
+
+::-webkit-scrollbar-thumb {
+  background: hsl(var(--momentum-border));
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: hsl(var(--momentum-text-secondary));
+}
+
+/* Focus styles */
+button:focus-visible,
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible {
+  outline: 2px solid hsl(var(--momentum-deep-blue));
+  outline-offset: 2px;
+}
+
+/* Animation utilities */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.3s ease-out;
+}
+
+/* Print styles */
+@media print {
+  .no-print {
+    display: none !important;
+  }
+}
