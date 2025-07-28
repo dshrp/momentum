@@ -1,58 +1,26 @@
-import { type NextRequest, NextResponse } from "next/server"
+import { NextResponse } from "next/server"
 
 export async function GET() {
-  try {
-    const gaId = process.env.NEXT_PUBLIC_GA_ID
+  const gaId = process.env.NEXT_PUBLIC_GA_ID
 
-    return NextResponse.json({
-      analytics: {
-        enabled: !!gaId,
-        gaId: gaId ? `${gaId.substring(0, 5)}...` : null, // Partially hide for security
-        status: gaId ? "configured" : "not_configured",
-      },
-      instructions: {
-        setup: [
-          "1. Get your Google Analytics 4 Measurement ID (starts with G-)",
-          "2. Add NEXT_PUBLIC_GA_ID=G-XXXXXXXXXX to your environment variables",
-          "3. Deploy the changes",
-          "4. Analytics will automatically start tracking",
-        ],
-        features: [
-          "Automatic page view tracking",
-          "Custom event tracking for user interactions",
-          "Conversion tracking for donations and signups",
-          "Source management tracking",
-          "Event engagement metrics",
-        ],
-      },
-    })
-  } catch (error) {
-    console.error("Analytics API error:", error)
-    return NextResponse.json({ error: "Failed to get analytics status" }, { status: 500 })
-  }
-}
-
-export async function POST(request: NextRequest) {
-  try {
-    const { event, category, label, value } = await request.json()
-
-    // Log analytics events server-side for debugging
-    console.log("📊 Analytics Event:", {
-      event,
-      category,
-      label,
-      value,
-      timestamp: new Date().toISOString(),
-      gaEnabled: !!process.env.NEXT_PUBLIC_GA_ID,
-    })
-
-    return NextResponse.json({
-      success: true,
-      logged: true,
-      gaEnabled: !!process.env.NEXT_PUBLIC_GA_ID,
-    })
-  } catch (error) {
-    console.error("Analytics logging error:", error)
-    return NextResponse.json({ error: "Failed to log analytics event" }, { status: 500 })
-  }
+  return NextResponse.json({
+    status: gaId ? "configured" : "not_configured",
+    ga_id: gaId ? `${gaId.substring(0, 4)}...` : null,
+    message: gaId
+      ? "Google Analytics is properly configured and tracking events"
+      : "Add NEXT_PUBLIC_GA_ID environment variable to enable tracking",
+    features: {
+      page_views: "Automatic tracking of all page visits",
+      event_interactions: "View, edit, hide, and calendar events",
+      user_actions: "Refresh, add sources, navigation",
+      conversions: "Waitlist signups, contact forms, donations",
+      error_tracking: "Automatic error and exception tracking",
+    },
+    setup_instructions: {
+      step_1: "Get your Google Analytics 4 Measurement ID (starts with G-)",
+      step_2: "Add NEXT_PUBLIC_GA_ID=G-XXXXXXXXXX to your environment variables",
+      step_3: "Deploy your changes",
+      step_4: "Visit your site and check Google Analytics Real-time reports",
+    },
+  })
 }

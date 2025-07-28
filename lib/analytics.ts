@@ -1,57 +1,131 @@
-// Google Analytics utility functions
+// Google Analytics tracking utilities for Momentum
 declare global {
   interface Window {
-    gtag: (command: string, targetId: string, config?: Record<string, any>) => void
+    gtag: (command: string, targetId: string, config?: any) => void
   }
 }
 
-// Track page views
-export const trackPageView = (url: string) => {
-  if (typeof window !== "undefined" && window.gtag) {
-    window.gtag("config", process.env.NEXT_PUBLIC_GA_ID!, {
-      page_path: url,
-    })
-  }
-}
-
-// Track custom events
-export const trackEvent = (action: string, category: string, label?: string, value?: number) => {
-  if (typeof window !== "undefined" && window.gtag) {
-    window.gtag("event", action, {
-      event_category: category,
-      event_label: label,
-      value: value,
-    })
-  }
-}
-
-// Track specific Momentum events
 export const trackMomentumEvent = {
-  // User interactions
-  viewEvent: (eventId: string) => trackEvent("view_event", "engagement", eventId),
-  editEvent: (eventId: string) => trackEvent("edit_event", "engagement", eventId),
-  hideEvent: (eventId: string) => trackEvent("hide_event", "engagement", eventId),
-  addToCalendar: (eventId: string) => trackEvent("add_to_calendar", "conversion", eventId),
+  // Page views (handled automatically by GA)
+
+  // Event interactions
+  viewEvent: (eventId: string) => {
+    if (typeof window !== "undefined" && window.gtag) {
+      window.gtag("event", "view_event", {
+        event_category: "Events",
+        event_label: eventId,
+        value: 1,
+      })
+    }
+  },
+
+  editEvent: (eventId: string) => {
+    if (typeof window !== "undefined" && window.gtag) {
+      window.gtag("event", "edit_event", {
+        event_category: "Events",
+        event_label: eventId,
+        value: 1,
+      })
+    }
+  },
+
+  hideEvent: (eventId: string) => {
+    if (typeof window !== "undefined" && window.gtag) {
+      window.gtag("event", "hide_event", {
+        event_category: "Events",
+        event_label: eventId,
+        value: 1,
+      })
+    }
+  },
+
+  addToCalendar: (eventId: string) => {
+    if (typeof window !== "undefined" && window.gtag) {
+      window.gtag("event", "add_to_calendar", {
+        event_category: "Events",
+        event_label: eventId,
+        value: 1,
+      })
+    }
+  },
+
+  // User actions
+  refreshEvents: () => {
+    if (typeof window !== "undefined" && window.gtag) {
+      window.gtag("event", "refresh_events", {
+        event_category: "User Actions",
+        value: 1,
+      })
+    }
+  },
+
+  addSource: (sourceType: string) => {
+    if (typeof window !== "undefined" && window.gtag) {
+      window.gtag("event", "add_source", {
+        event_category: "Sources",
+        event_label: sourceType,
+        value: 1,
+      })
+    }
+  },
 
   // Navigation
-  visitFollowing: () => trackEvent("visit_following", "navigation"),
-  visitAbout: () => trackEvent("visit_about", "navigation"),
-  visitAdmin: () => trackEvent("visit_admin", "navigation"),
+  visitFollowing: () => {
+    if (typeof window !== "undefined" && window.gtag) {
+      window.gtag("event", "visit_following", {
+        event_category: "Navigation",
+        value: 1,
+      })
+    }
+  },
 
-  // Sources
-  addSource: (sourceType: string) => trackEvent("add_source", "sources", sourceType),
-  removeSource: (sourceType: string) => trackEvent("remove_source", "sources", sourceType),
+  visitAbout: () => {
+    if (typeof window !== "undefined" && window.gtag) {
+      window.gtag("event", "visit_about", {
+        event_category: "Navigation",
+        value: 1,
+      })
+    }
+  },
 
-  // Donations
-  initiateDonation: (amount: number) => trackEvent("initiate_donation", "conversion", "donation", amount),
-  completeDonation: (amount: number) => trackEvent("complete_donation", "conversion", "donation", amount),
+  // Conversions
+  joinWaitlist: (email: string) => {
+    if (typeof window !== "undefined" && window.gtag) {
+      window.gtag("event", "join_waitlist", {
+        event_category: "Conversions",
+        value: 1,
+      })
+    }
+  },
 
-  // Waitlist
-  joinWaitlist: () => trackEvent("join_waitlist", "conversion", "waitlist"),
+  contactSubmit: () => {
+    if (typeof window !== "undefined" && window.gtag) {
+      window.gtag("event", "contact_submit", {
+        event_category: "Conversions",
+        value: 1,
+      })
+    }
+  },
 
-  // Contact
-  submitContact: () => trackEvent("submit_contact", "conversion", "contact"),
+  donate: (amount: number) => {
+    if (typeof window !== "undefined" && window.gtag) {
+      window.gtag("event", "purchase", {
+        transaction_id: Date.now().toString(),
+        value: amount,
+        currency: "USD",
+        event_category: "Donations",
+      })
+    }
+  },
 
-  // Refresh actions
-  refreshEvents: () => trackEvent("refresh_events", "engagement", "refresh"),
+  // Errors
+  trackError: (error: string, page: string) => {
+    if (typeof window !== "undefined" && window.gtag) {
+      window.gtag("event", "exception", {
+        description: error,
+        fatal: false,
+        custom_map: { page },
+      })
+    }
+  },
 }
