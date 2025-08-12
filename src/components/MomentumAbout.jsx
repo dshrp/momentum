@@ -1,386 +1,409 @@
 "use client"
 
-import { useState } from "react"
-import {
-  Calendar,
-  Zap,
-  Instagram,
-  ExternalLink,
-  FileText,
-  CreditCard,
-  Mail,
-  MessageSquare,
-  ArrowLeft,
-} from "lucide-react"
-import { trackMomentumEvent } from "../../lib/analytics"
+import { useState, useEffect } from "react"
+import { Heart, ExternalLink, Coffee, Zap, Users, Target, ArrowRight, CheckCircle, XCircle } from "lucide-react"
+import { trackEvent } from "../../lib/analytics"
 
-export default function MomentumAbout() {
-  const [email, setEmail] = useState("")
-  const [message, setMessage] = useState("")
-  const [isSubmitting, setIsSubmitting] = useState(false)
-  const [submitStatus, setSubmitStatus] = useState(null)
+const MomentumAbout = () => {
+  const [donationAmount, setDonationAmount] = useState(5)
+  const [showDonationFlow, setShowDonationFlow] = useState(false)
+  const [donationStatus, setDonationStatus] = useState(null)
+  const [isProcessing, setIsProcessing] = useState(false)
 
-  const handleContactSubmit = async (e) => {
-    e.preventDefault()
-    setIsSubmitting(true)
+  // Check for donation status in URL params
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search)
+    const donation = urlParams.get("donation")
+    const sessionId = urlParams.get("session_id")
+
+    if (donation === "success") {
+      setDonationStatus("success")
+      trackEvent("donation_completed", {
+        session_id: sessionId,
+        amount: donationAmount,
+      })
+      // Clean up URL
+      window.history.replaceState({}, document.title, window.location.pathname)
+    } else if (donation === "cancelled") {
+      setDonationStatus("cancelled")
+      trackEvent("donation_cancelled", {
+        amount: donationAmount,
+      })
+      // Clean up URL
+      window.history.replaceState({}, document.title, window.location.pathname)
+    }
+  }, [donationAmount])
+
+  const handleDonation = async () => {
+    if (isProcessing) return
+
+    setIsProcessing(true)
 
     try {
-      const response = await fetch("/api/contact", {
+      console.log("🎯 Starting donation process for $" + donationAmount)
+
+      trackEvent("donation_initiated", {
+        amount: donationAmount,
+        amount_cents: donationAmount * 100,
+      })
+
+      // Create checkout session
+      const response = await fetch("/api/create-payment-intent", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ email, message }),
+        body: JSON.stringify({
+          amount: donationAmount * 100, // Convert to cents
+        }),
       })
 
-      if (response.ok) {
-        setSubmitStatus("success")
-        setEmail("")
-        setMessage("")
-        trackMomentumEvent.contactSubmit()
+      console.log("📡 Payment API response status:", response.status)
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        console.error("❌ Payment API error:", errorData)
+        throw new Error(errorData.error || "Failed to create payment session")
+      }
+
+      const data = await response.json()
+      console.log("✅ Payment session created:", data)
+
+      if (data.url) {
+        console.log("🔄 Redirecting to Stripe Checkout:", data.url)
+        trackEvent("donation_redirect_to_stripe", {
+          session_id: data.sessionId,
+          amount: donationAmount,
+        })
+        // Redirect to Stripe Checkout
+        window.location.href = data.url
       } else {
-        setSubmitStatus("error")
+        throw new Error("No checkout URL received from Stripe")
       }
     } catch (error) {
-      console.error("Contact form error:", error)
-      setSubmitStatus("error")
+      console.error("💥 Donation failed:", error)
+      setDonationStatus("error")
+      trackEvent("donation_error", {
+        error: error.message,
+        amount: donationAmount,
+      })
+      alert("Sorry, there was an error processing your donation. Please try again.")
     } finally {
-      setIsSubmitting(false)
-      setTimeout(() => setSubmitStatus(null), 5000)
+      setIsProcessing(false)
     }
   }
 
+  const presetAmounts = [5, 10, 25, 50]
+
   return (
-    <div className="min-h-screen bg-[hsl(var(--momentum-cream))]">
+    <div className="min-h-screen" style={{ backgroundColor: "#F0F9FF" }}>
       {/* Header */}
-      <div className="bg-[hsl(var(--momentum-card-bg))] shadow-sm border-b-[3px] border-[hsl(var(--momentum-border))]">
-        <div className="max-w-6xl mx-auto px-6 py-6">
-          <div className="flex items-center gap-4">
-            <button
-              onClick={() => window.history.back()}
-              className="p-2 rounded-xl hover:opacity-70 transition-opacity"
-              style={{
-                border: "2px solid hsl(var(--momentum-border))",
-                backgroundColor: "hsl(var(--momentum-card-bg))",
-                color: "hsl(var(--momentum-text-primary))",
-              }}
-            >
-              <ArrowLeft className="w-5 h-5" />
-            </button>
-            <div className="flex items-center gap-4">
-              <div className="w-10 h-10 bg-gradient-to-r from-blue-800 to-blue-900 rounded-xl flex items-center justify-center">
-                <Zap className="w-6 h-6 text-white" />
-              </div>
-              <div>
-                <h1 className="text-2xl font-bold text-[hsl(var(--momentum-text-primary))]">About Momentum</h1>
-                <p className="text-sm text-[hsl(var(--momentum-text-secondary))]">
-                  Never miss your friends' events again
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div className="max-w-4xl mx-auto px-6 py-12">
-        {/* Hero Section */}
-        <div className="text-center mb-16">
-          <h2 className="text-4xl font-bold mb-6 text-[hsl(var(--momentum-text-primary))]">
-            Stay Connected to Your Creative Community
-          </h2>
-          <p className="text-xl text-[hsl(var(--momentum-text-secondary))] max-w-3xl mx-auto leading-relaxed">
-            Momentum automatically tracks Instagram posts from your friends and favorite artists, surfacing the events
-            and shows you care about most - all in one organized dashboard.
-          </p>
-        </div>
-
-        {/* How It Works */}
-        <div className="mb-16">
-          <h3 className="text-2xl font-bold mb-8 text-center text-[hsl(var(--momentum-text-primary))]">
-            How Momentum Works
-          </h3>
-          <div className="grid md:grid-cols-3 gap-8">
-            <div className="text-center">
-              <div className="w-16 h-16 bg-gradient-to-r from-blue-800 to-blue-900 rounded-xl flex items-center justify-center mx-auto mb-4">
-                <Instagram className="w-8 h-8 text-white" />
-              </div>
-              <h4 className="text-lg font-semibold mb-3 text-[hsl(var(--momentum-text-primary))]">
-                Connect Your Sources
-              </h4>
-              <p className="text-[hsl(var(--momentum-text-secondary))]">
-                Add Instagram accounts of friends, artists, venues, and promoters you want to follow
-              </p>
-            </div>
-            <div className="text-center">
-              <div className="w-16 h-16 bg-gradient-to-r from-blue-800 to-blue-900 rounded-xl flex items-center justify-center mx-auto mb-4">
-                <Zap className="w-8 h-8 text-white" />
-              </div>
-              <h4 className="text-lg font-semibold mb-3 text-[hsl(var(--momentum-text-primary))]">
-                Automatic Detection
-              </h4>
-              <p className="text-[hsl(var(--momentum-text-secondary))]">
-                Our AI scans posts and stories to identify events, shows, and gatherings
-              </p>
-            </div>
-            <div className="text-center">
-              <div className="w-16 h-16 bg-gradient-to-r from-blue-800 to-blue-900 rounded-xl flex items-center justify-center mx-auto mb-4">
-                <Calendar className="w-8 h-8 text-white" />
-              </div>
-              <h4 className="text-lg font-semibold mb-3 text-[hsl(var(--momentum-text-primary))]">
-                Organized Dashboard
-              </h4>
-              <p className="text-[hsl(var(--momentum-text-secondary))]">
-                View all upcoming events in one place, with dates, times, and venue information
-              </p>
-            </div>
-          </div>
-        </div>
-
-        {/* Features */}
-        <div className="mb-16">
-          <h3 className="text-2xl font-bold mb-8 text-center text-[hsl(var(--momentum-text-primary))]">Key Features</h3>
-          <div className="grid md:grid-cols-2 gap-6">
-            <div className="bg-[hsl(var(--momentum-card-bg))] rounded-xl p-6 border-[3px] border-[hsl(var(--momentum-border))]">
-              <h4 className="text-lg font-semibold mb-3 text-[hsl(var(--momentum-text-primary))]">
-                🎯 Smart Event Detection
-              </h4>
-              <p className="text-[hsl(var(--momentum-text-secondary))]">
-                Advanced AI identifies events from Instagram posts and stories, even when details are scattered across
-                multiple posts
-              </p>
-            </div>
-            <div className="bg-[hsl(var(--momentum-card-bg))] rounded-xl p-6 border-[3px] border-[hsl(var(--momentum-border))]">
-              <h4 className="text-lg font-semibold mb-3 text-[hsl(var(--momentum-text-primary))]">
-                📅 Calendar Integration
-              </h4>
-              <p className="text-[hsl(var(--momentum-text-secondary))]">
-                One-click export to Google Calendar, Apple Calendar, or any calendar app that supports .ics files
-              </p>
-            </div>
-            <div className="bg-[hsl(var(--momentum-card-bg))] rounded-xl p-6 border-[3px] border-[hsl(var(--momentum-border))]">
-              <h4 className="text-lg font-semibold mb-3 text-[hsl(var(--momentum-text-primary))]">✏️ Event Editing</h4>
-              <p className="text-[hsl(var(--momentum-text-secondary))]">
-                Add missing details, correct information, or hide events you're not interested in
-              </p>
-            </div>
-            <div className="bg-[hsl(var(--momentum-card-bg))] rounded-xl p-6 border-[3px] border-[hsl(var(--momentum-border))]">
-              <h4 className="text-lg font-semibold mb-3 text-[hsl(var(--momentum-text-primary))]">
-                🔄 Real-time Updates
-              </h4>
-              <p className="text-[hsl(var(--momentum-text-secondary))]">
-                Automatic refresh keeps your event list current with the latest posts from your followed accounts
-              </p>
-            </div>
-          </div>
-        </div>
-
-        {/* More from Momentum Section */}
-        <div className="mb-16">
-          <div className="bg-[hsl(var(--momentum-card-bg))] rounded-xl overflow-hidden border-[3px] border-[hsl(var(--momentum-border))] shadow-lg">
-            <div className="flex flex-col lg:flex-row">
-              {/* Left side - Blue background */}
-              <div className="lg:w-1/2 bg-gradient-to-br from-blue-800 to-blue-900 p-8 lg:p-12 flex flex-col justify-center items-center text-center">
-                <Calendar className="w-16 h-16 text-white mb-6" />
-                <h3 className="text-2xl font-bold text-white mb-2">Never miss an event</h3>
-              </div>
-
-              {/* Right side - Light background */}
-              <div className="lg:w-1/2 p-8 lg:p-12 bg-blue-50">
-                <h3 className="text-2xl font-bold mb-4 text-gray-900">More from Momentum</h3>
-                <p className="text-gray-700 mb-6 leading-relaxed">
-                  Discover events you're missing on Instagram. Momentum helps you see creative community events buried
-                  by the algorithm, all in one place.
-                </p>
-                <a
-                  href="/"
-                  onClick={() => trackMomentumEvent.visitAbout()}
-                  className="inline-flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-xl font-semibold hover:bg-blue-700 transition-colors border-2 border-blue-700"
-                >
-                  Visit Momentum
-                  <ExternalLink className="w-4 h-4" />
-                </a>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Summarizer App Section */}
-        <div className="mb-16">
-          <div className="bg-[hsl(var(--momentum-card-bg))] rounded-xl overflow-hidden border-[3px] border-[hsl(var(--momentum-border))] shadow-lg">
-            <div className="flex flex-col lg:flex-row">
-              {/* Left side - Blue background */}
-              <div className="lg:w-1/2 bg-gradient-to-br from-blue-800 to-blue-900 p-8 lg:p-12 flex flex-col justify-center items-center text-center">
-                <FileText className="w-16 h-16 text-white mb-6" />
-                <h3 className="text-2xl font-bold text-white mb-2">Summarize any podcast</h3>
-              </div>
-
-              {/* Right side - Light background */}
-              <div className="lg:w-1/2 p-8 lg:p-12 bg-blue-50">
-                <h3 className="text-2xl font-bold mb-4 text-gray-900">Summarizer</h3>
-                <p className="text-gray-700 mb-6 leading-relaxed">
-                  Upload YouTube podcast transcripts (.txt files) and get AI-powered summaries. Perfect for quickly
-                  understanding long-form content and extracting key insights.
-                </p>
-                <a
-                  href="https://summarizer.thedscs.com/"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-xl font-semibold hover:bg-blue-700 transition-colors border-2 border-blue-700"
-                >
-                  Visit Summarizer
-                  <ExternalLink className="w-4 h-4" />
-                </a>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Support Section */}
-        <div className="mb-16">
-          <h3 className="text-2xl font-bold mb-8 text-center text-[hsl(var(--momentum-text-primary))]">
-            Support Momentum
-          </h3>
-          <div className="bg-[hsl(var(--momentum-card-bg))] rounded-xl p-8 border-[3px] border-[hsl(var(--momentum-border))] text-center">
-            <CreditCard className="w-12 h-12 mx-auto mb-4 text-[hsl(var(--momentum-deep-blue))]" />
-            <h4 className="text-xl font-semibold mb-4 text-[hsl(var(--momentum-text-primary))]">
-              Help Keep Momentum Running
-            </h4>
-            <p className="text-[hsl(var(--momentum-text-secondary))] mb-6 max-w-2xl mx-auto">
-              Momentum is a passion project that helps creative communities stay connected. Your support helps cover
-              server costs and keeps the service free for everyone.
+      <div className="px-6 py-8">
+        <div className="max-w-4xl mx-auto">
+          <div className="text-center mb-12">
+            <h1 className="text-4xl font-bold mb-4" style={{ color: "#1A1A1A" }}>
+              About Momentum
+            </h1>
+            <p className="text-xl" style={{ color: "#4A4A4A" }}>
+              Helping creative communities stay connected through event discovery
             </p>
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <button
-                onClick={() => {
-                  trackMomentumEvent.donate(5)
-                  window.open("https://buy.stripe.com/test_your_link_here", "_blank")
-                }}
-                className="px-6 py-3 bg-[hsl(var(--momentum-deep-blue))] text-white rounded-xl font-semibold hover:opacity-90 transition-opacity"
-              >
-                Donate $5
-              </button>
-              <button
-                onClick={() => {
-                  trackMomentumEvent.donate(10)
-                  window.open("https://buy.stripe.com/test_your_link_here", "_blank")
-                }}
-                className="px-6 py-3 bg-[hsl(var(--momentum-deep-blue))] text-white rounded-xl font-semibold hover:opacity-90 transition-opacity"
-              >
-                Donate $10
-              </button>
-              <button
-                onClick={() => {
-                  trackMomentumEvent.donate(25)
-                  window.open("https://buy.stripe.com/test_your_link_here", "_blank")
-                }}
-                className="px-6 py-3 bg-[hsl(var(--momentum-deep-blue))] text-white rounded-xl font-semibold hover:opacity-90 transition-opacity"
-              >
-                Donate $25
-              </button>
-            </div>
           </div>
-        </div>
 
-        {/* Contact Section */}
-        <div className="mb-16">
-          <h3 className="text-2xl font-bold mb-8 text-center text-[hsl(var(--momentum-text-primary))]">Get in Touch</h3>
-          <div className="bg-[hsl(var(--momentum-card-bg))] rounded-xl p-8 border-[3px] border-[hsl(var(--momentum-border))]">
-            <div className="max-w-2xl mx-auto">
-              <div className="text-center mb-6">
-                <MessageSquare className="w-12 h-12 mx-auto mb-4 text-[hsl(var(--momentum-deep-blue))]" />
-                <h4 className="text-xl font-semibold mb-2 text-[hsl(var(--momentum-text-primary))]">
-                  Questions or Feedback?
-                </h4>
-                <p className="text-[hsl(var(--momentum-text-secondary))]">
-                  We'd love to hear from you! Send us a message and we'll get back to you soon.
-                </p>
-              </div>
+          {/* Mission Section */}
+          <div
+            className="p-8 rounded-2xl mb-8"
+            style={{
+              border: "2px solid #1A1A1A",
+              backgroundColor: "white",
+            }}
+          >
+            <div className="flex items-center gap-3 mb-6">
+              <Target className="w-8 h-8" style={{ color: "#1E40AF" }} />
+              <h2 className="text-2xl font-bold" style={{ color: "#1A1A1A" }}>
+                Our Mission
+              </h2>
+            </div>
+            <p className="text-lg leading-relaxed mb-6" style={{ color: "#4A4A4A" }}>
+              Momentum was born from a simple observation: creative communities are scattered across Instagram, posting
+              events in stories that disappear, making it hard for people to discover and attend the experiences that
+              matter to them.
+            </p>
+            <p className="text-lg leading-relaxed" style={{ color: "#4A4A4A" }}>
+              We're building a bridge between event organizers and their audiences, making it easier than ever to stay
+              connected with the creative communities you care about.
+            </p>
+          </div>
 
-              <form onSubmit={handleContactSubmit} className="space-y-4">
-                <div>
-                  <label
-                    htmlFor="email"
-                    className="block text-sm font-medium mb-2 text-[hsl(var(--momentum-text-primary))]"
-                  >
-                    Email Address
-                  </label>
-                  <input
-                    type="email"
-                    id="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    required
-                    className="w-full px-4 py-3 rounded-xl border-[2px] border-[hsl(var(--momentum-border))] focus:border-[hsl(var(--momentum-deep-blue))] focus:outline-none transition-colors"
-                    style={{
-                      backgroundColor: "hsl(var(--momentum-card-bg))",
-                      color: "hsl(var(--momentum-text-primary))",
-                    }}
-                    placeholder="your@email.com"
-                  />
-                </div>
-                <div>
-                  <label
-                    htmlFor="message"
-                    className="block text-sm font-medium mb-2 text-[hsl(var(--momentum-text-primary))]"
-                  >
-                    Message
-                  </label>
-                  <textarea
-                    id="message"
-                    value={message}
-                    onChange={(e) => setMessage(e.target.value)}
-                    required
-                    rows={4}
-                    className="w-full px-4 py-3 rounded-xl border-[2px] border-[hsl(var(--momentum-border))] focus:border-[hsl(var(--momentum-deep-blue))] focus:outline-none transition-colors resize-vertical"
-                    style={{
-                      backgroundColor: "hsl(var(--momentum-card-bg))",
-                      color: "hsl(var(--momentum-text-primary))",
-                    }}
-                    placeholder="Tell us what's on your mind..."
-                  />
-                </div>
-                <button
-                  type="submit"
-                  disabled={isSubmitting}
-                  className="w-full px-6 py-3 bg-[hsl(var(--momentum-deep-blue))] text-white rounded-xl font-semibold hover:opacity-90 transition-opacity disabled:opacity-50 flex items-center justify-center gap-2"
+          {/* How It Works */}
+          <div
+            className="p-8 rounded-2xl mb-8"
+            style={{
+              border: "2px solid #1A1A1A",
+              backgroundColor: "white",
+            }}
+          >
+            <div className="flex items-center gap-3 mb-6">
+              <Zap className="w-8 h-8" style={{ color: "#1E40AF" }} />
+              <h2 className="text-2xl font-bold" style={{ color: "#1A1A1A" }}>
+                How It Works
+              </h2>
+            </div>
+            <div className="grid md:grid-cols-3 gap-6">
+              <div className="text-center">
+                <div
+                  className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4"
+                  style={{ backgroundColor: "#1E40AF" }}
                 >
-                  {isSubmitting ? (
-                    <>
-                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                      Sending...
-                    </>
-                  ) : (
-                    <>
-                      <Mail className="w-4 h-4" />
-                      Send Message
-                    </>
-                  )}
-                </button>
-              </form>
-
-              {submitStatus === "success" && (
-                <div className="mt-4 p-4 bg-green-100 border-2 border-green-300 rounded-xl">
-                  <p className="text-green-800 font-semibold">✅ Message sent successfully!</p>
-                  <p className="text-green-700 text-sm">We'll get back to you soon.</p>
+                  <Users className="w-8 h-8 text-white" />
                 </div>
-              )}
-
-              {submitStatus === "error" && (
-                <div className="mt-4 p-4 bg-red-100 border-2 border-red-300 rounded-xl">
-                  <p className="text-red-800 font-semibold">❌ Failed to send message</p>
-                  <p className="text-red-700 text-sm">Please try again or email us directly.</p>
+                <h3 className="font-bold mb-2" style={{ color: "#1A1A1A" }}>
+                  Follow Sources
+                </h3>
+                <p style={{ color: "#4A4A4A" }}>Connect your favorite Instagram accounts and event organizers</p>
+              </div>
+              <div className="text-center">
+                <div
+                  className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4"
+                  style={{ backgroundColor: "#1E40AF" }}
+                >
+                  <Zap className="w-8 h-8 text-white" />
                 </div>
-              )}
+                <h3 className="font-bold mb-2" style={{ color: "#1A1A1A" }}>
+                  Auto-Discovery
+                </h3>
+                <p style={{ color: "#4A4A4A" }}>We automatically find and organize events from their posts</p>
+              </div>
+              <div className="text-center">
+                <div
+                  className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4"
+                  style={{ backgroundColor: "#1E40AF" }}
+                >
+                  <Heart className="w-8 h-8 text-white" />
+                </div>
+                <h3 className="font-bold mb-2" style={{ color: "#1A1A1A" }}>
+                  Never Miss Out
+                </h3>
+                <p style={{ color: "#4A4A4A" }}>Get a personalized feed of events you actually want to attend</p>
+              </div>
             </div>
           </div>
-        </div>
 
-        {/* Footer */}
-        <div className="text-center text-[hsl(var(--momentum-text-secondary))]">
-          <p className="mb-2">Built with ❤️ for the creative community</p>
-          <p className="text-sm">© 2024 Momentum. Made to help you never miss the moments that matter.</p>
+          {/* Support Section */}
+          <div
+            className="p-8 rounded-2xl mb-8"
+            style={{
+              border: "2px solid #1A1A1A",
+              backgroundColor: "white",
+            }}
+          >
+            <div className="flex items-center gap-3 mb-6">
+              <Coffee className="w-8 h-8" style={{ color: "#1E40AF" }} />
+              <h2 className="text-2xl font-bold" style={{ color: "#1A1A1A" }}>
+                Support Momentum
+              </h2>
+            </div>
+
+            {/* Donation Status Messages */}
+            {donationStatus === "success" && (
+              <div
+                className="p-4 rounded-xl mb-6 flex items-center gap-3"
+                style={{
+                  border: "2px solid #10B981",
+                  backgroundColor: "#ECFDF5",
+                }}
+              >
+                <CheckCircle className="w-6 h-6 text-green-600" />
+                <div>
+                  <p className="font-bold text-green-800">Thank you for your donation! 🎉</p>
+                  <p className="text-green-700">Your support helps us keep Momentum running and improving.</p>
+                </div>
+              </div>
+            )}
+
+            {donationStatus === "cancelled" && (
+              <div
+                className="p-4 rounded-xl mb-6 flex items-center gap-3"
+                style={{
+                  border: "2px solid #F59E0B",
+                  backgroundColor: "#FFFBEB",
+                }}
+              >
+                <XCircle className="w-6 h-6 text-amber-600" />
+                <div>
+                  <p className="font-bold text-amber-800">Donation cancelled</p>
+                  <p className="text-amber-700">No worries! You can try again anytime.</p>
+                </div>
+              </div>
+            )}
+
+            {donationStatus === "error" && (
+              <div
+                className="p-4 rounded-xl mb-6 flex items-center gap-3"
+                style={{
+                  border: "2px solid #EF4444",
+                  backgroundColor: "#FEF2F2",
+                }}
+              >
+                <XCircle className="w-6 h-6 text-red-600" />
+                <div>
+                  <p className="font-bold text-red-800">Something went wrong</p>
+                  <p className="text-red-700">Please try again or contact support if the issue persists.</p>
+                </div>
+              </div>
+            )}
+
+            <p className="text-lg mb-6" style={{ color: "#4A4A4A" }}>
+              Momentum is a passion project built to serve creative communities. Your support helps us cover server
+              costs, improve the platform, and keep the service free for everyone.
+            </p>
+
+            {!showDonationFlow ? (
+              <button
+                onClick={() => {
+                  setShowDonationFlow(true)
+                  trackEvent("donation_flow_opened")
+                }}
+                className="flex items-center gap-2 px-6 py-3 text-white rounded-xl font-bold hover:opacity-90 transition-opacity"
+                style={{ backgroundColor: "#1E40AF" }}
+              >
+                <Heart className="w-5 h-5" />
+                Support Momentum
+                <ArrowRight className="w-4 h-4" />
+              </button>
+            ) : (
+              <div className="space-y-6">
+                <div>
+                  <p className="font-semibold mb-4" style={{ color: "#1A1A1A" }}>
+                    Choose an amount:
+                  </p>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
+                    {presetAmounts.map((amount) => (
+                      <button
+                        key={amount}
+                        onClick={() => {
+                          setDonationAmount(amount)
+                          trackEvent("donation_amount_selected", { amount })
+                        }}
+                        className={`p-3 rounded-xl font-bold transition-all ${
+                          donationAmount === amount ? "text-white" : "hover:opacity-70"
+                        }`}
+                        style={{
+                          backgroundColor: donationAmount === amount ? "#1E40AF" : "white",
+                          border: "2px solid #1A1A1A",
+                          color: donationAmount === amount ? "white" : "#1A1A1A",
+                        }}
+                      >
+                        ${amount}
+                      </button>
+                    ))}
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span style={{ color: "#1A1A1A" }}>$</span>
+                    <input
+                      type="number"
+                      min="1"
+                      max="1000"
+                      value={donationAmount}
+                      onChange={(e) => {
+                        const value = Math.max(1, Number.parseInt(e.target.value) || 1)
+                        setDonationAmount(value)
+                        trackEvent("donation_custom_amount", { amount: value })
+                      }}
+                      className="flex-1 p-3 rounded-xl font-bold"
+                      style={{
+                        border: "2px solid #1A1A1A",
+                        color: "#1A1A1A",
+                      }}
+                      placeholder="Custom amount"
+                    />
+                  </div>
+                </div>
+
+                <div className="flex gap-4">
+                  <button
+                    onClick={() => {
+                      setShowDonationFlow(false)
+                      trackEvent("donation_flow_cancelled")
+                    }}
+                    disabled={isProcessing}
+                    className="flex-1 px-6 py-3 rounded-xl font-bold transition-opacity hover:opacity-70 disabled:opacity-50"
+                    style={{
+                      border: "2px solid #1A1A1A",
+                      color: "#1A1A1A",
+                      backgroundColor: "white",
+                    }}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleDonation}
+                    disabled={isProcessing || !donationAmount || donationAmount < 1}
+                    className="flex-1 flex items-center justify-center gap-2 px-6 py-3 text-white rounded-xl font-bold hover:opacity-90 transition-opacity disabled:opacity-50"
+                    style={{
+                      backgroundColor: "#1E40AF",
+                      border: "2px solid #1A1A1A",
+                    }}
+                  >
+                    {isProcessing ? (
+                      <>
+                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                        Processing...
+                      </>
+                    ) : (
+                      <>
+                        <Heart className="w-4 h-4" />
+                        Donate ${donationAmount}
+                      </>
+                    )}
+                  </button>
+                </div>
+
+                <div
+                  className="p-4 rounded-xl"
+                  style={{
+                    border: "2px solid #1A1A1A",
+                    backgroundColor: "#F0F9FF",
+                  }}
+                >
+                  <p className="text-sm font-medium mb-2" style={{ color: "#1E40AF" }}>
+                    🔒 Secure payment processing
+                  </p>
+                  <p className="text-sm" style={{ color: "#4A4A4A" }}>
+                    Powered by Stripe. Your payment information is encrypted and secure.
+                  </p>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Contact */}
+          <div
+            className="p-8 rounded-2xl text-center"
+            style={{
+              border: "2px solid #1A1A1A",
+              backgroundColor: "white",
+            }}
+          >
+            <h2 className="text-2xl font-bold mb-4" style={{ color: "#1A1A1A" }}>
+              Get In Touch
+            </h2>
+            <p className="text-lg mb-6" style={{ color: "#4A4A4A" }}>
+              Have questions, feedback, or want to collaborate? We'd love to hear from you.
+            </p>
+            <a
+              href="mailto:hello@momentum.thedscs.com"
+              onClick={() => trackEvent("contact_email_clicked")}
+              className="inline-flex items-center gap-2 px-6 py-3 text-white rounded-xl font-bold hover:opacity-90 transition-opacity"
+              style={{ backgroundColor: "#1E40AF" }}
+            >
+              <ExternalLink className="w-4 h-4" />
+              hello@momentum.thedscs.com
+            </a>
+          </div>
         </div>
       </div>
     </div>
   )
 }
+
+export default MomentumAbout
